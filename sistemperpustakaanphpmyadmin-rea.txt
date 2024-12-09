@@ -1,0 +1,140 @@
+-- Dump SQL phpMyAdmin
+-- versi 5.2.1
+-- https://www.phpmyadmin.net/
+-- Host: localhost
+-- Versi server: 10.4.28-MariaDB
+-- Versi PHP: 8.2.4
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+SET NAMES utf8mb4;
+
+-- Basis Data: perpustakaan_full
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel anggota
+CREATE TABLE anggota (
+  anggota_id INT(11) NOT NULL AUTO_INCREMENT,
+  nama_anggota VARCHAR(150) NOT NULL,
+  alamat_anggota TEXT NOT NULL,
+  telepon_anggota VARCHAR(15) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  tanggal_bergabung DATE NOT NULL,
+  status_keanggotaan ENUM('aktif', 'nonaktif') DEFAULT 'aktif',
+  PRIMARY KEY (anggota_id),
+  UNIQUE KEY (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel kategori_buku
+CREATE TABLE kategori_buku (
+  kategori_id INT(11) NOT NULL AUTO_INCREMENT,
+  nama_kategori VARCHAR(100) NOT NULL,
+  deskripsi_kategori TEXT,
+  PRIMARY KEY (kategori_id),
+  UNIQUE KEY (nama_kategori)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel buku
+CREATE TABLE buku (
+  buku_id INT(11) NOT NULL AUTO_INCREMENT,
+  judul VARCHAR(255) NOT NULL,
+  penulis VARCHAR(255) NOT NULL,
+  penerbit VARCHAR(255) NOT NULL,
+  tahun_terbit YEAR(4) NOT NULL,
+  kategori_id INT(11) NOT NULL,
+  isbn VARCHAR(13) NOT NULL,
+  jumlah_halaman INT(11),
+  stok_tersedia INT(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (buku_id),
+  FOREIGN KEY (kategori_id) REFERENCES kategori_buku(kategori_id) ON DELETE SET NULL,
+  UNIQUE KEY (isbn)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel peminjaman
+CREATE TABLE peminjaman (
+  peminjaman_id INT(11) NOT NULL AUTO_INCREMENT,
+  anggota_id INT(11) NOT NULL,
+  buku_id INT(11) NOT NULL,
+  tanggal_pinjam DATE NOT NULL,
+  tanggal_kembali DATE NOT NULL,
+  tanggal_dikembalikan DATE,
+  status ENUM('dipinjam', 'dikembalikan', 'terlambat') DEFAULT 'dipinjam',
+  denda_terlambat DECIMAL(10, 2) DEFAULT 0.00,
+  PRIMARY KEY (peminjaman_id),
+  FOREIGN KEY (anggota_id) REFERENCES anggota(anggota_id) ON DELETE CASCADE,
+  FOREIGN KEY (buku_id) REFERENCES buku(buku_id) ON DELETE CASCADE,
+  INDEX (tanggal_pinjam),
+  INDEX (tanggal_kembali)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel petugas
+CREATE TABLE petugas (
+  petugas_id INT(11) NOT NULL AUTO_INCREMENT,
+  nama_petugas VARCHAR(255) NOT NULL,
+  telepon VARCHAR(15),
+  email VARCHAR(255) NOT NULL,
+  tanggal_diterima DATE NOT NULL,
+  peran ENUM('pustakawan', 'asisten') NOT NULL,
+  gaji DECIMAL(10, 2),
+  PRIMARY KEY (petugas_id),
+  UNIQUE KEY (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel reservasi
+CREATE TABLE reservasi (
+  reservasi_id INT(11) NOT NULL AUTO_INCREMENT,
+  anggota_id INT(11) NOT NULL,
+  buku_id INT(11) NOT NULL,
+  tanggal_reservasi DATE NOT NULL,
+  status ENUM('menunggu', 'disetujui', 'dibatalkan') DEFAULT 'menunggu',
+  PRIMARY KEY (reservasi_id),
+  FOREIGN KEY (anggota_id) REFERENCES anggota(anggota_id) ON DELETE CASCADE,
+  FOREIGN KEY (buku_id) REFERENCES buku(buku_id) ON DELETE CASCADE,
+  INDEX (tanggal_reservasi)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Struktur tabel untuk tabel denda
+CREATE TABLE denda (
+  denda_id INT(11) NOT NULL AUTO_INCREMENT,
+  anggota_id INT(11) NOT NULL,
+  peminjaman_id INT(11) NOT NULL,
+  jumlah_denda DECIMAL(10, 2) NOT NULL,
+  tanggal_denda DATE NOT NULL,
+  status ENUM('belum_dibayar', 'dibayar') DEFAULT 'belum_dibayar',
+  PRIMARY KEY (denda_id),
+  FOREIGN KEY (anggota_id) REFERENCES anggota(anggota_id) ON DELETE CASCADE,
+  FOREIGN KEY (peminjaman_id) REFERENCES peminjaman(peminjaman_id) ON DELETE CASCADE,
+  INDEX (tanggal_denda)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+-- Indeks untuk meningkatkan performa
+
+-- Tambahkan indeks pada buku untuk pencarian lebih cepat berdasarkan penulis dan judul
+ALTER TABLE buku
+  ADD INDEX (penulis),
+  ADD INDEX (judul);
+
+-- Tambahkan indeks pada peminjaman untuk kueri lebih cepat berdasarkan status dan ID anggota
+ALTER TABLE peminjaman
+  ADD INDEX (status),
+  ADD INDEX (anggota_id);
+
+-- Komit transaksi
+COMMIT;
+
